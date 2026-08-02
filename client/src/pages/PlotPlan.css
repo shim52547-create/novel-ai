@@ -1,0 +1,77 @@
+.plot-timeline {
+  position: relative;
+  padding-left: 40px;
+}
+
+.timeline-line {
+  position: absolute;
+  left: 18px; top: 0; bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, var(--cyan), var(--border), transparent);
+  opacity: 0.4;
+}
+
+.plot-item {
+  position: relative;
+  margin-bottom: 20px;
+  animation: fadeUp 0.4s ease both;
+}
+
+.plot-node {
+  position: absolute;
+  left: -40px; top: 18px;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  z-index: 1;
+  transition: all var(--transition);
+}
+
+.plot-item.written .plot-node {
+  background: rgba(0, 240, 255, 0.1);
+  border-color: var(--cyan);
+  color: var(--cyan);
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+}
+
+.plot-card {
+  background: rgba(17, 17, 48, 0.5);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  transition: all var(--transition);
+}
+
+.plot-card:hover { border-color: var(--border-glow); }
+
+.plot-item.written .plot-card {
+  border-left: 3px solid var(--cyan);
+}
+
+.plot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.plot-ch {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--cyan);
+  letter-spacing: 0.08em;
+}
+
+.plot-text {
+  color: var(--text-secondary);
+  line-height: 1.7;
+  font-size: 0.95rem;
+}

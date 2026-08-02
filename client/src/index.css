@@ -1,0 +1,97 @@
+:root {
+  /* Cyber palette */
+  --bg-void: #030308;
+  --bg-deep: #060612;
+  --bg: #0a0a1a;
+  --bg-elevated: #0e0e24;
+  --surface: #111130;
+  --surface-hover: #181848;
+  --border: #1a1a50;
+  --border-glow: #2a2a70;
+
+  /* Neon colors */
+  --cyan: #00f0ff;
+  --cyan-dim: #00b8cc;
+  --cyan-glow: rgba(0, 240, 255, 0.15);
+  --magenta: #ff00aa;
+  --magenta-dim: #cc0088;
+  --magenta-glow: rgba(255, 0, 170, 0.12);
+  --yellow: #ffe44d;
+  --yellow-dim: #ccbb33;
+  --yellow-glow: rgba(255, 228, 77, 0.1);
+  --green: #00ff88;
+  --green-glow: rgba(0, 255, 136, 0.12);
+  --red: #ff3366;
+  --purple: #aa44ff;
+  --purple-glow: rgba(170, 68, 255, 0.12);
+
+  /* Text */
+  --text-primary: #e8e8ff;
+  --text-secondary: #9090bb;
+  --text-muted: #505078;
+
+  /* Fonts */
+  --font-display: 'Orbitron', sans-serif;
+  --font-body: 'Rajdhani', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Effects */
+  --neon-cyan: 0 0 7px #00f0ff, 0 0 20px rgba(0,240,255,0.3), 0 0 40px rgba(0,240,255,0.1);
+  --neon-magenta: 0 0 7px #ff00aa, 0 0 20px rgba(255,0,170,0.3), 0 0 40px rgba(255,0,170,0.1);
+  --neon-green: 0 0 7px #00ff88, 0 0 20px rgba(0,255,136,0.3);
+
+  --radius: 4px;
+  --radius-lg: 8px;
+  --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html { font-size: 15px; }
+
+body {
+  background: var(--bg-void);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-weight: 500;
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Scanlines overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+::selection {
+  background: var(--cyan);
+  color: #000;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--cyan);
+  border-radius: 2px;
+  box-shadow: var(--neon-cyan);
+}
+
+input, textarea, select, button { font-family: inherit; }
+a { color: var(--cyan); text-decoration: none; }
