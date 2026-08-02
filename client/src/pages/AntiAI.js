@@ -6,7 +6,7 @@ import {
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './AntiAI.css';
-import API_URL, { apiFetch } from '../config';
+import API_URL, { apiFetch, getHeaders } from '../config';
 
 function AntiAI() {
   const { id } = useParams();
@@ -60,7 +60,7 @@ function AntiAI() {
     try {
       const res = await apiFetch(`${API_URL}/api/anti-ai/analyze`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({ text }),
       });
       const data = await res.json();
@@ -78,7 +78,7 @@ function AntiAI() {
     try {
       const res = await apiFetch(`${API_URL}/api/anti-ai/fix`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({
           text,
           issues: detailedResult?.issues || [],

@@ -5,7 +5,7 @@ import {
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './AIChat.css';
-import API_URL, { apiFetch } from '../config';
+import API_URL, { apiFetch, getHeaders } from '../config';
 
 function AIChat() {
   const { id } = useParams();
@@ -61,7 +61,7 @@ function AIChat() {
 
       const res = await apiFetch(`${API_URL}/api/books/${id}/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({
           characterName: selectedChar.name,
           message: userMsg.content,

@@ -6,7 +6,7 @@ import {
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './Revision.css';
-import API_URL, { apiFetch } from '../config';
+import API_URL, { apiFetch, getHeaders } from '../config';
 
 function Revision() {
   const { id } = useParams();
@@ -79,6 +79,7 @@ function Revision() {
     try {
       const res = await apiFetch(`${API_URL}/api/chapters/${selected.id}/revise`, {
         method: 'POST',
+        headers: getHeaders(),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);

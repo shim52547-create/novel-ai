@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiSave, FiCheckCircle, FiClock, FiZap, FiEye, FiCheck } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './Write.css';
-import API_URL, { apiFetch } from '../config';
+import API_URL, { apiFetch, getHeaders } from '../config';
 
 const AGENT_INFO = {
   ARCHITECT:   { icon: '🏗️', label: 'ARCHITECT',   color: '#aa44ff' },
@@ -94,7 +94,7 @@ function Write() {
     try {
       const res = await apiFetch(`${API_URL}/api/books/${id}/write`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({ chapterNumber, instructions }),
       });
       const d = await res.json();

@@ -158,8 +158,4 @@ Phát hành theo giấy phép [MIT](LICENSE).
 
 ---
 
-<<<<<<< HEAD
 <p align="center">Được xây dựng với ❤️ và rất nhiều lần gọi API AI</p>
-=======
-<p align="center">Được xây dựng bởi Shin với ❤️ và rất nhiều các loại AI</p>
->>>>>>> f3e1fda2bc51186ef88b6c89137695819de2aa0d

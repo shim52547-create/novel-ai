@@ -7,7 +7,7 @@ import {
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './Storybible.css';
-import API_URL, { apiFetch } from '../config';
+import API_URL, { apiFetch, getHeaders } from '../config';
 
 function Storybible() {
   const { id } = useParams();
@@ -34,6 +34,7 @@ function Storybible() {
     try {
       const res = await apiFetch(`${API_URL}/api/books/${id}/storybible/generate`, {
         method: 'POST',
+        headers: getHeaders(),
       });
       const json = await res.json();
       if (json.error) throw new Error(json.error);
