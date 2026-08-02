@@ -18,6 +18,7 @@ import Storybible from './pages/Storybible';
 import AIChat from './pages/AIChat';
 import Settings from './pages/Settings';
 import './App.css';
+import API_URL from './config';
 
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -31,7 +32,7 @@ function App() {
 
   const fetchBooks = async () => {
     try {
-      const res = await fetch('http://localhost:4000/api/books');
+      const res = await fetch(`${API_URL}/api/books`);
       setBooks(await res.json());
     } catch (err) {
       console.error(err);

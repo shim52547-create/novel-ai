@@ -7,6 +7,7 @@ import {
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './Storybible.css';
+import API_URL from '../config';
 
 function Storybible() {
   const { id } = useParams();
@@ -18,7 +19,7 @@ function Storybible() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch(`http://localhost:4000/api/books/${id}/storybible`);
+      const res = await fetch(`${API_URL}/api/books/${id}/storybible`);
       const json = await res.json();
       setData(json);
     } catch (err) {
@@ -31,7 +32,7 @@ function Storybible() {
   const handleGenerate = async () => {
     setLoading('generate');
     try {
-      const res = await fetch(`http://localhost:4000/api/books/${id}/storybible/generate`, {
+      const res = await fetch(`${API_URL}/api/books/${id}/storybible/generate`, {
         method: 'POST',
       });
       const json = await res.json();

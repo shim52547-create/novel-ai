@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { FiPlus, FiEdit3, FiTrash2, FiUser, FiArrowLeft } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './Characters.css';
+import API_URL from '../config';
 
 function Characters() {
   const { id } = useParams();
@@ -18,7 +19,7 @@ function Characters() {
   }
 
   const load = async () => {
-    const res = await fetch(`http://localhost:4000/api/books/${id}`);
+    const res = await fetch(`${API_URL}/api/books/${id}`);
     const data = await res.json();
     setCharacters(data.characters);
     setBookTitle(data.book.title);
@@ -29,7 +30,7 @@ function Characters() {
   const handleSubmit = async () => {
     if (!form.name.trim()) { toast.error('Nhập tên nhân vật'); return; }
     const method = editingId ? 'PUT' : 'POST';
-    const url = editingId ? `http://localhost:4000/api/characters/${editingId}` : `http://localhost:4000/api/books/${id}/characters`;
+    const url = editingId ? `${API_URL}/api/characters/${editingId}` : `${API_URL}/api/books/${id}/characters`;
     await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
     toast.success(editingId ? 'Đã cập nhật!' : 'Đã thêm!');
     setForm(emptyForm()); setShowForm(false); setEditingId(null); load();
@@ -37,7 +38,7 @@ function Characters() {
 
   const handleDelete = async (cid) => {
     if (!window.confirm('Xóa nhân vật này?')) return;
-    await fetch(`http://localhost:4000/api/characters/${cid}`, { method: 'DELETE' });
+    await fetch(`${API_URL}/api/characters/${cid}`, { method: 'DELETE' });
     toast.success('Đã xóa'); load();
   };
 

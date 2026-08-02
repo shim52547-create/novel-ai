@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiUsers, FiFeather, FiMap, FiArrowRight, FiClock, FiCpu, FiDownload, FiEdit3, FiBook, FiMessageSquare } from 'react-icons/fi';
 import './BookDetail.css';
+import API_URL from '../config';
 
 function BookDetail() {
   const { id } = useParams();
@@ -9,7 +10,7 @@ function BookDetail() {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    fetch(`http://localhost:4000/api/books/${id}`)
+    fetch(`${API_URL}/api/books/${id}`)
       .then(r => r.json())
       .then(setData)
       .catch(console.error);

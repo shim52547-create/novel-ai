@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FiPlus, FiBookOpen, FiFeather, FiClock, FiZap, FiDatabase, FiCpu, FiTerminal } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './Home.css';
+import API_URL from '../config';
 
 function Typewriter({ text, speed = 40 }) {
   const [displayed, setDisplayed] = useState('');
@@ -57,7 +58,7 @@ function Home({ books, refreshBooks }) {
     if (!form.title.trim()) { toast.error('Nhập tên truyện'); return; }
     setCreating(true);
     try {
-      const res = await fetch('http://localhost:4000/api/books', {
+      const res = await fetch(`${API_URL}/api/books`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),

@@ -6,6 +6,7 @@ import {
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './Memory.css';
+import API_URL from '../config';
 
 const EVENT_TYPES = [
   { value: 'character_action', label: 'HÀNH ĐỘNG', color: '#00f0ff' },
@@ -61,10 +62,10 @@ function Memory() {
   const load = async () => {
     try {
       const [bookRes, eventsRes, worldRes, timelineRes] = await Promise.all([
-        fetch(`http://localhost:4000/api/books/${id}`).then(r => r.json()),
-        fetch(`http://localhost:4000/api/books/${id}/events`).then(r => r.json()),
-        fetch(`http://localhost:4000/api/books/${id}/world-state`).then(r => r.json()),
-        fetch(`http://localhost:4000/api/books/${id}/character-timeline`).then(r => r.json()),
+        fetch(`${API_URL}/api/books/${id}`).then(r => r.json()),
+        fetch(`${API_URL}/api/books/${id}/events`).then(r => r.json()),
+        fetch(`${API_URL}/api/books/${id}/world-state`).then(r => r.json()),
+        fetch(`${API_URL}/api/books/${id}/character-timeline`).then(r => r.json()),
       ]);
       setBook(bookRes.book);
       setEvents(eventsRes);
@@ -81,8 +82,8 @@ function Memory() {
     if (!eventForm.description.trim()) { toast.error('Nhập mô tả'); return; }
     const method = editingEvent ? 'PUT' : 'POST';
     const url = editingEvent
-      ? `http://localhost:4000/api/events/${editingEvent.id}`
-      : `http://localhost:4000/api/books/${id}/events`;
+      ? `${API_URL}/api/events/${editingEvent.id}`
+      : `${API_URL}/api/books/${id}/events`;
     await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
@@ -97,7 +98,7 @@ function Memory() {
 
   const handleDeleteEvent = async (evtId) => {
     if (!window.confirm('Xóa sự kiện này?')) return;
-    await fetch(`http://localhost:4000/api/events/${evtId}`, { method: 'DELETE' });
+    await fetch(`${API_URL}/api/events/${evtId}`, { method: 'DELETE' });
     toast.success('Đã xóa');
     load();
   };
@@ -112,8 +113,8 @@ function Memory() {
     if (!worldForm.entity_name.trim()) { toast.error('Nhập tên'); return; }
     const method = editingWorld ? 'PUT' : 'POST';
     const url = editingWorld
-      ? `http://localhost:4000/api/world-state/${editingWorld.id}`
-      : `http://localhost:4000/api/books/${id}/world-state`;
+      ? `${API_URL}/api/world-state/${editingWorld.id}`
+      : `${API_URL}/api/books/${id}/world-state`;
     await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
@@ -128,7 +129,7 @@ function Memory() {
 
   const handleDeleteWorld = async (wsId) => {
     if (!window.confirm('Xóa mục này?')) return;
-    await fetch(`http://localhost:4000/api/world-state/${wsId}`, { method: 'DELETE' });
+    await fetch(`${API_URL}/api/world-state/${wsId}`, { method: 'DELETE' });
     toast.success('Đã xóa');
     load();
   };
