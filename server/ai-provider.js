@@ -79,7 +79,9 @@ async function callAI(prompt, maxTokens = 4000, temperature = 0.7, options = {})
   const provider = PROVIDERS[providerId];
   if (!provider) throw new Error('Provider không hỗ trợ');
 
-  if (!apiKey) throw new Error('Chưa cấu hình API Key. Vào Cài đặt để nhập.');
+  if (!apiKey) {
+    throw new Error('Bạn chưa nhập API Key. Vào Sidebar → CÀI ĐẶT → chọn Provider → nhập API Key của bạn.');
+  }
 
   try {
     let result;
@@ -93,18 +95,27 @@ async function callAI(prompt, maxTokens = 4000, temperature = 0.7, options = {})
     return result;
   } catch (error) {
     const status = error.response?.status;
-    const msg = error.response?.data?.error?.message || error.response?.data?.detail || error.message;
-    if (status === 401) throw new Error(`[${provider.name}] API Key không hợp lệ`);
-    if (status === 429) throw new Error(`[${provider.name}] Hết quota`);
+    const msg = error.response?.data?.error?.message
+      || error.response?.data?.detail
+      || error.response?.data?.message
+      || error.message;
+
+    if (status === 401) throw new Error(`[${provider.name}] API Key không hợp lệ. Kiểm tra lại trong Cài đặt.`);
+    if (status === 429) throw new Error(`[${provider.name}] Đã hết quota. Thử provider khác hoặc chờ reset.`);
+    if (status === 400) throw new Error(`[${provider.name}] Lỗi: ${msg}`);
     if (status === 404) throw new Error(`[${provider.name}] Model "${modelId}" không tồn tại`);
+
     throw new Error(`[${provider.name}] ${msg}`);
   }
 }
 
+// ====== OPENAI COMPATIBLE ======
 async function callOpenAICompatible(baseUrl, apiKey, model, prompt, maxTokens, temperature) {
   const response = await axios.post(baseUrl, {
-    model, messages: [{ role: 'user', content: prompt }],
-    max_tokens: maxTokens, temperature,
+    model,
+    messages: [{ role: 'user', content: prompt }],
+    max_tokens: maxTokens,
+    temperature,
   }, {
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
     timeout: 180000,
@@ -112,37 +123,53 @@ async function callOpenAICompatible(baseUrl, apiKey, model, prompt, maxTokens, t
   return response.data.choices[0].message.content;
 }
 
+// ====== ANTHROPIC (Claude) ======
 async function callAnthropic(apiKey, model, prompt, maxTokens, temperature) {
   const response = await axios.post('https://api.anthropic.com/v1/messages', {
-    model, max_tokens: maxTokens, temperature,
+    model,
+    max_tokens: maxTokens,
+    temperature,
     messages: [{ role: 'user', content: prompt }],
   }, {
-    headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
     timeout: 180000,
   });
   return response.data.content[0].text;
 }
 
+// ====== GOOGLE (Gemini) ======
 async function callGoogle(apiKey, model, prompt, maxTokens, temperature) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
   const response = await axios.post(url, {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: { maxOutputTokens: maxTokens, temperature },
-  }, { headers: { 'Content-Type': 'application/json' }, timeout: 180000 });
+  }, {
+    headers: { 'Content-Type': 'application/json' },
+    timeout: 180000,
+  });
   return response.data.candidates[0].content.parts[0].text;
 }
 
+// ====== HELPERS ======
 function getProviders() {
   return Object.entries(PROVIDERS).map(([id, p]) => ({
-    id, name: p.name, models: p.models, keyPrefix: p.keyPrefix,
+    id,
+    name: p.name,
+    models: p.models,
+    keyPrefix: p.keyPrefix,
   }));
 }
 
 function getDefaultConfig() {
   return {
-    provider: process.env.AI_PROVIDER || 'mistral',
-    model: process.env.AI_MODEL || 'mistral-small-latest',
-    hasDefaultKey: !!process.env.MISTRAL_API_KEY,
+    provider: 'mistral',
+    model: 'mistral-small-latest',
+    hasDefaultKey: false,
+    message: 'Bạn cần nhập API Key trong Cài đặt để sử dụng. Chọn Provider → nhập Key → chọn Model → Lưu.',
   };
 }
 
