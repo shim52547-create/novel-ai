@@ -8,7 +8,7 @@ function keepAlive() {
 
   setInterval(() => {
     const protocol = RENDER_URL.startsWith('https') ? https : http;
-    protocol.get(RENDER_URL + '/api/books', (res) => {
+    protocol.get(RENDER_URL + '/api/health', (res) => {
       console.log(`🔄 Keep-alive: ${res.statusCode}`);
     }).on('error', (err) => {
       console.log('Keep-alive error:', err.message);

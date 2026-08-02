@@ -75,11 +75,18 @@ app.post('/api/auth/login', (req, res) => {
 
 // ====== ÁP DỤNG XÁC THỰC CHO TOÀN BỘ /api CÒN LẠI ======
 // (đặt sau route auth + trước mọi route cần đăng nhập bên dưới)
-const PUBLIC_API_PATHS = ['/api/auth/register', '/api/auth/login', '/api/providers', '/api/config/check'];
+const PUBLIC_API_PATHS = ['/api/auth/register', '/api/auth/login', '/api/providers', '/api/config/check', '/api/health'];
 app.use((req, res, next) => {
   if (!req.path.startsWith('/api/')) return next();
   if (PUBLIC_API_PATHS.includes(req.path)) return next();
   return authMiddleware(req, res, next);
+});
+
+// ====== HEALTH CHECK (public — dùng để UptimeRobot/ping giữ server khỏi ngủ) ======
+// Route này KHÔNG cần đăng nhập, KHÔNG đụng database — chỉ trả về nhanh gọn
+// để UptimeRobot coi server còn sống.
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', time: new Date().toISOString() });
 });
 
 // ====== KIỂM TRA QUYỀN SỞ HỮU SÁCH ======
