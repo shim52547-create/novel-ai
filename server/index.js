@@ -568,6 +568,16 @@ app.get('/api/config/check', (req, res) => {
   res.json(getDefaultConfig());
 });
 
+// ====== SERVE REACT CLIENT (BUILD) ======
+// Phục vụ file tĩnh của React sau khi đã build (client/build)
+app.use(express.static(path.join(__dirname, '../client/build')));
+
+// Mọi route KHÔNG bắt đầu bằng /api sẽ trả về index.html của React
+// để React Router xử lý phía client (SPA fallback)
+app.get(/^(?!\/api).*/, (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
+});
+
 // ====== START SERVER ======
 
 const PORT = process.env.PORT || 4000;
