@@ -12,7 +12,6 @@ server/exports/
 # Environment
 .env
 client/.env
-client/.env.production
 
 # Logs
 *.log

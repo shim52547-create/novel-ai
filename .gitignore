@@ -5,8 +5,10 @@ server/novels.db
 server/exports/
 .env
 .env.*
+!client/.env.production
 client/.env
 client/.env.*
+!client/.env.production
 server/.env
 server/.env.*
 *.log
