@@ -1,0 +1,120 @@
+.login-page {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+  padding: 24px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 0 40px rgba(0, 240, 255, 0.08);
+}
+
+.login-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.login-logo .logo-icon {
+  font-size: 28px;
+  color: var(--cyan);
+}
+
+.login-logo .logo-text {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--text-primary);
+}
+
+.login-logo .logo-ai {
+  color: var(--magenta);
+}
+
+.login-tabs {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.login-tabs button {
+  flex: 1;
+  padding: 10px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+
+.login-tabs button.active {
+  background: var(--surface-hover);
+  color: var(--cyan);
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.login-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.login-form input {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.login-form input:focus {
+  outline: none;
+  border-color: var(--cyan);
+}
+
+.login-submit {
+  margin-top: 4px;
+  padding: 11px;
+  border-radius: 6px;
+  border: none;
+  background: var(--cyan);
+  color: #04040a;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+}
+
+.login-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.login-hint {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+}

@@ -6,7 +6,7 @@ import {
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './Settings.css';
-import API_URL from '../config';
+import API_URL, { apiFetch } from '../config';
 
 function Settings() {
   const navigate = useNavigate();
@@ -23,12 +23,12 @@ function Settings() {
     setSelectedProvider(localStorage.getItem('novel_ai_provider') || '');
     setSelectedModel(localStorage.getItem('novel_ai_model') || '');
 
-    fetch(`${API_URL}/api/providers`)
+    apiFetch(`${API_URL}/api/providers`)
       .then(r => r.json())
       .then(setProviders)
       .catch(() => {});
 
-    fetch(`${API_URL}/api/config/check`)
+    apiFetch(`${API_URL}/api/config/check`)
       .then(r => r.json())
       .then(setConfig)
       .catch(() => {});
@@ -69,7 +69,7 @@ function Settings() {
     setTesting(true);
     try {
       const model = selectedModel || currentModels[0]?.id;
-      const res = await fetch(`${API_URL}/api/anti-ai/quick`, {
+      const res = await apiFetch(`${API_URL}/api/anti-ai/quick`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiSave, FiCheckCircle, FiClock, FiZap, FiEye, FiCheck } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './Write.css';
-import API_URL from '../config';
+import API_URL, { apiFetch } from '../config';
 
 const AGENT_INFO = {
   ARCHITECT:   { icon: '🏗️', label: 'ARCHITECT',   color: '#aa44ff' },
@@ -76,7 +76,7 @@ function Write() {
   const timerRef = useRef(null);
 
   const load = async () => {
-    const res = await fetch(`${API_URL}/api/books/${id}`);
+    const res = await apiFetch(`${API_URL}/api/books/${id}`);
     const d = await res.json();
     setData(d);
     setChapterNumber(d.chapters.length + 1);
@@ -92,7 +92,7 @@ function Write() {
     timerRef.current = setInterval(() => setElapsed(prev => prev + 1), 1000);
 
     try {
-      const res = await fetch(`${API_URL}/api/books/${id}/write`, {
+      const res = await apiFetch(`${API_URL}/api/books/${id}/write`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chapterNumber, instructions }),
@@ -114,7 +114,7 @@ function Write() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await fetch(`${API_URL}/api/chapters/${result.id}`, {
+      await apiFetch(`${API_URL}/api/chapters/${result.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -136,7 +136,7 @@ function Write() {
   const handleDelete = async (ch) => {
     if (!window.confirm(`Xóa chương ${ch.chapter_number}?`)) return;
     try {
-      await fetch(`${API_URL}/api/chapters/${ch.id}`, { method: 'DELETE' });
+      await apiFetch(`${API_URL}/api/chapters/${ch.id}`, { method: 'DELETE' });
       toast.success(`Đã xóa chương ${ch.chapter_number}`);
       load();
     } catch (err) {

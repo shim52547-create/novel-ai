@@ -6,7 +6,7 @@ import {
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './Export.css';
-import API_URL from '../config';
+import API_URL, { apiFetch } from '../config';
 
 const FORMATS = [
   {
@@ -51,7 +51,7 @@ function Export() {
   const [exporting, setExporting] = useState('');
 
   useEffect(() => {
-    fetch(`${API_URL}/api/books/${id}`)
+    apiFetch(`${API_URL}/api/books/${id}`)
       .then(r => r.json())
       .then(data => {
         setBook(data.book);
@@ -66,7 +66,7 @@ function Export() {
     }
     setExporting(format);
     try {
-      const response = await fetch(`${API_URL}/api/books/${id}/export/${format}`);
+      const response = await apiFetch(`${API_URL}/api/books/${id}/export/${format}`);
       if (!response.ok) {
         const err = await response.json();
         throw new Error(err.error || 'Lỗi export');

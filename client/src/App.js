@@ -17,22 +17,34 @@ import Revision from './pages/Revision';
 import Storybible from './pages/Storybible';
 import AIChat from './pages/AIChat';
 import Settings from './pages/Settings';
+import Login from './pages/Login';
 import './App.css';
-import API_URL from './config';
+import API_URL, { apiFetch, isLoggedIn, getUsername, clearSession } from './config';
+import { FiLogOut } from 'react-icons/fi';
+
+function ProtectedRoute({ children }) {
+  return isLoggedIn() ? children : <Navigate to="/login" replace />;
+}
 
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [books, setBooks] = useState([]);
+  const loggedIn = isLoggedIn();
 
   const particlesProvider = useParticlesProvider(async (engine) => {
     await loadSlim(engine);
   });
 
-  useEffect(() => { fetchBooks(); }, []);
+  useEffect(() => { if (loggedIn) fetchBooks(); }, [loggedIn]);
+
+  const handleLogout = () => {
+    clearSession();
+    window.location.href = '/login';
+  };
 
   const fetchBooks = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/books`);
+      const res = await apiFetch(`${API_URL}/api/books`);
       setBooks(await res.json());
     } catch (err) {
       console.error(err);
@@ -75,26 +87,42 @@ function App() {
       {particlesProvider && (
         <Particles id="tsparticles" provider={particlesProvider} options={particlesConfig()} style={{ position: 'fixed', inset: 0, zIndex: 1 }} />
       )}
-      <div className={`app-layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-        <Sidebar books={books} collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
-        <main className="main-content">
-          <Routes>
-            <Route path="/" element={<Home books={books} refreshBooks={fetchBooks} />} />
-            <Route path="/book/:id" element={<BookDetail />} />
-            <Route path="/book/:id/characters" element={<Characters />} />
-            <Route path="/book/:id/plot" element={<PlotPlan />} />
-            <Route path="/book/:id/memory" element={<Memory />} />
-            <Route path="/book/:id/anti-ai" element={<AntiAI />} />
-            <Route path="/book/:id/revision" element={<Revision />} />
-            <Route path="/book/:id/storybible" element={<Storybible />} />
-            <Route path="/book/:id/chat" element={<AIChat />} />
-            <Route path="/book/:id/export" element={<Export />} />
-            <Route path="/book/:id/write" element={<Write />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </main>
-      </div>
+      {!loggedIn ? (
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      ) : (
+        <div className={`app-layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+          <Sidebar books={books} collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
+          <main className="main-content">
+            {!sidebarCollapsed && (
+              <div className="topbar-account">
+                <span className="topbar-username">{getUsername()}</span>
+                <button className="topbar-logout" onClick={handleLogout} title="Đăng xuất">
+                  <FiLogOut /> Đăng xuất
+                </button>
+              </div>
+            )}
+            <Routes>
+              <Route path="/" element={<ProtectedRoute><Home books={books} refreshBooks={fetchBooks} /></ProtectedRoute>} />
+              <Route path="/book/:id" element={<ProtectedRoute><BookDetail /></ProtectedRoute>} />
+              <Route path="/book/:id/characters" element={<ProtectedRoute><Characters /></ProtectedRoute>} />
+              <Route path="/book/:id/plot" element={<ProtectedRoute><PlotPlan /></ProtectedRoute>} />
+              <Route path="/book/:id/memory" element={<ProtectedRoute><Memory /></ProtectedRoute>} />
+              <Route path="/book/:id/anti-ai" element={<ProtectedRoute><AntiAI /></ProtectedRoute>} />
+              <Route path="/book/:id/revision" element={<ProtectedRoute><Revision /></ProtectedRoute>} />
+              <Route path="/book/:id/storybible" element={<ProtectedRoute><Storybible /></ProtectedRoute>} />
+              <Route path="/book/:id/chat" element={<ProtectedRoute><AIChat /></ProtectedRoute>} />
+              <Route path="/book/:id/export" element={<ProtectedRoute><Export /></ProtectedRoute>} />
+              <Route path="/book/:id/write" element={<ProtectedRoute><Write /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="/login" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </main>
+        </div>
+      )}
     </BrowserRouter>
   );
 }

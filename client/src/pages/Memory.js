@@ -6,7 +6,7 @@ import {
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './Memory.css';
-import API_URL from '../config';
+import API_URL, { apiFetch } from '../config';
 
 const EVENT_TYPES = [
   { value: 'character_action', label: 'HÀNH ĐỘNG', color: '#00f0ff' },
@@ -62,10 +62,10 @@ function Memory() {
   const load = async () => {
     try {
       const [bookRes, eventsRes, worldRes, timelineRes] = await Promise.all([
-        fetch(`${API_URL}/api/books/${id}`).then(r => r.json()),
-        fetch(`${API_URL}/api/books/${id}/events`).then(r => r.json()),
-        fetch(`${API_URL}/api/books/${id}/world-state`).then(r => r.json()),
-        fetch(`${API_URL}/api/books/${id}/character-timeline`).then(r => r.json()),
+        apiFetch(`${API_URL}/api/books/${id}`).then(r => r.json()),
+        apiFetch(`${API_URL}/api/books/${id}/events`).then(r => r.json()),
+        apiFetch(`${API_URL}/api/books/${id}/world-state`).then(r => r.json()),
+        apiFetch(`${API_URL}/api/books/${id}/character-timeline`).then(r => r.json()),
       ]);
       setBook(bookRes.book);
       setEvents(eventsRes);
@@ -84,7 +84,7 @@ function Memory() {
     const url = editingEvent
       ? `${API_URL}/api/events/${editingEvent.id}`
       : `${API_URL}/api/books/${id}/events`;
-    await fetch(url, {
+    await apiFetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(eventForm)
@@ -98,7 +98,7 @@ function Memory() {
 
   const handleDeleteEvent = async (evtId) => {
     if (!window.confirm('Xóa sự kiện này?')) return;
-    await fetch(`${API_URL}/api/events/${evtId}`, { method: 'DELETE' });
+    await apiFetch(`${API_URL}/api/events/${evtId}`, { method: 'DELETE' });
     toast.success('Đã xóa');
     load();
   };
@@ -115,7 +115,7 @@ function Memory() {
     const url = editingWorld
       ? `${API_URL}/api/world-state/${editingWorld.id}`
       : `${API_URL}/api/books/${id}/world-state`;
-    await fetch(url, {
+    await apiFetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(worldForm)
@@ -129,7 +129,7 @@ function Memory() {
 
   const handleDeleteWorld = async (wsId) => {
     if (!window.confirm('Xóa mục này?')) return;
-    await fetch(`${API_URL}/api/world-state/${wsId}`, { method: 'DELETE' });
+    await apiFetch(`${API_URL}/api/world-state/${wsId}`, { method: 'DELETE' });
     toast.success('Đã xóa');
     load();
   };

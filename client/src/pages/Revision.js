@@ -6,7 +6,7 @@ import {
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './Revision.css';
-import API_URL from '../config';
+import API_URL, { apiFetch } from '../config';
 
 function Revision() {
   const { id } = useParams();
@@ -24,7 +24,7 @@ function Revision() {
 
   const load = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/books/${id}`);
+      const res = await apiFetch(`${API_URL}/api/books/${id}`);
       const data = await res.json();
       setBook(data.book);
       const enriched = data.chapters.map(ch => ({
@@ -56,7 +56,7 @@ function Revision() {
     if (!selected) return;
     setLoading('save');
     try {
-      await fetch(`${API_URL}/api/chapters/${selected.id}`, {
+      await apiFetch(`${API_URL}/api/chapters/${selected.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -77,7 +77,7 @@ function Revision() {
     if (!selected) return;
     setLoading('revise');
     try {
-      const res = await fetch(`${API_URL}/api/chapters/${selected.id}/revise`, {
+      const res = await apiFetch(`${API_URL}/api/chapters/${selected.id}/revise`, {
         method: 'POST',
       });
       const data = await res.json();
@@ -98,7 +98,7 @@ function Revision() {
     if (!editContent.trim()) { toast.error('Chưa có nội dung'); return; }
     setLoading('antiai');
     try {
-      const res = await fetch(`${API_URL}/api/anti-ai/quick`, {
+      const res = await apiFetch(`${API_URL}/api/anti-ai/quick`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: editContent }),

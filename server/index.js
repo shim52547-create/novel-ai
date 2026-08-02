@@ -11,6 +11,7 @@ const {
 const { analyzeAISmell, fixAISmell, quickAnalyze } = require('./anti-ai');
 const { compileStorybible, generateNarrativeBible, chatWithCharacter } = require('./storybible');
 const { getProviders, getDefaultConfig } = require('./ai-provider');
+const { hashPassword, verifyPassword, signToken, authMiddleware } = require('./auth');
 
 const app = express();
 app.use(cors({
@@ -43,20 +44,81 @@ function getAIOptions(req) {
   };
 }
 
+// ====== ĐĂNG KÝ / ĐĂNG NHẬP (public — không cần token) ======
+
+app.post('/api/auth/register', (req, res) => {
+  const { username, password } = req.body || {};
+  if (!username || !password) return res.status(400).json({ error: 'Thiếu tên đăng nhập hoặc mật khẩu' });
+  if (String(username).trim().length < 3) return res.status(400).json({ error: 'Tên đăng nhập cần tối thiểu 3 ký tự' });
+  if (String(password).length < 6) return res.status(400).json({ error: 'Mật khẩu cần tối thiểu 6 ký tự' });
+
+  const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
+  if (existing) return res.status(409).json({ error: 'Tên đăng nhập đã tồn tại' });
+
+  const password_hash = hashPassword(password);
+  const result = db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(username, password_hash);
+  const token = signToken({ userId: result.lastInsertRowid, username });
+  res.json({ token, username });
+});
+
+app.post('/api/auth/login', (req, res) => {
+  const { username, password } = req.body || {};
+  if (!username || !password) return res.status(400).json({ error: 'Thiếu tên đăng nhập hoặc mật khẩu' });
+
+  const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+  if (!user || !verifyPassword(password, user.password_hash)) {
+    return res.status(401).json({ error: 'Sai tên đăng nhập hoặc mật khẩu' });
+  }
+  const token = signToken({ userId: user.id, username: user.username });
+  res.json({ token, username: user.username });
+});
+
+// ====== ÁP DỤNG XÁC THỰC CHO TOÀN BỘ /api CÒN LẠI ======
+// (đặt sau route auth + trước mọi route cần đăng nhập bên dưới)
+const PUBLIC_API_PATHS = ['/api/auth/register', '/api/auth/login', '/api/providers', '/api/config/check'];
+app.use((req, res, next) => {
+  if (!req.path.startsWith('/api/')) return next();
+  if (PUBLIC_API_PATHS.includes(req.path)) return next();
+  return authMiddleware(req, res, next);
+});
+
+// ====== KIỂM TRA QUYỀN SỞ HỮU SÁCH ======
+// bookAccess: dùng cho route có :id LÀ id của sách (books.id)
+function bookAccess(req, res, next) {
+  const book = db.prepare('SELECT * FROM books WHERE id = ?').get(req.params.id);
+  if (!book || book.owner_id !== req.userId) return res.status(404).json({ error: 'Không tìm thấy' });
+  next();
+}
+// subAccess(table): dùng cho route có :id LÀ id của 1 dòng con (chapter/character/event/world_state),
+// tra ngược ra book_id của dòng đó rồi kiểm tra chủ sở hữu.
+function subAccess(table) {
+  return (req, res, next) => {
+    const row = db.prepare(`SELECT book_id FROM ${table} WHERE id = ?`).get(req.params.id);
+    if (!row) return res.status(404).json({ error: 'Không tìm thấy' });
+    const book = db.prepare('SELECT * FROM books WHERE id = ?').get(row.book_id);
+    if (!book || book.owner_id !== req.userId) return res.status(404).json({ error: 'Không tìm thấy' });
+    next();
+  };
+}
+const characterAccess = subAccess('characters');
+const chapterAccess = subAccess('chapters');
+const eventAccess = subAccess('story_events');
+const worldStateAccess = subAccess('world_state');
+
 // ====== BOOKS ======
 
 app.post('/api/books', (req, res) => {
   const { title, genre, setting, synopsis } = req.body;
-  const result = db.prepare('INSERT INTO books (title, genre, setting, synopsis) VALUES (?, ?, ?, ?)').run(title, genre, setting, synopsis);
+  const result = db.prepare('INSERT INTO books (title, genre, setting, synopsis, owner_id) VALUES (?, ?, ?, ?, ?)').run(title, genre, setting, synopsis, req.userId);
   res.json({ id: result.lastInsertRowid });
 });
 
 app.get('/api/books', (req, res) => {
-  const books = db.prepare('SELECT * FROM books ORDER BY created_at DESC').all();
+  const books = db.prepare('SELECT * FROM books WHERE owner_id = ? ORDER BY created_at DESC').all(req.userId);
   res.json(books);
 });
 
-app.get('/api/books/:id', (req, res) => {
+app.get('/api/books/:id', bookAccess, (req, res) => {
   const book = db.prepare('SELECT * FROM books WHERE id = ?').get(req.params.id);
   const characters = db.prepare('SELECT * FROM characters WHERE book_id = ?').all(req.params.id);
   const chapters = db.prepare('SELECT * FROM chapters WHERE book_id = ? ORDER BY chapter_number').all(req.params.id);
@@ -69,26 +131,26 @@ app.get('/api/books/:id', (req, res) => {
 
 // ====== CHARACTERS ======
 
-app.post('/api/books/:id/characters', (req, res) => {
+app.post('/api/books/:id/characters', bookAccess, (req, res) => {
   const { name, age, appearance, personality, relationships, backstory } = req.body;
   const result = db.prepare('INSERT INTO characters (book_id, name, age, appearance, personality, relationships, backstory) VALUES (?,?,?,?,?,?,?)').run(req.params.id, name, age, appearance, personality, relationships, backstory);
   res.json({ id: result.lastInsertRowid });
 });
 
-app.put('/api/characters/:id', (req, res) => {
+app.put('/api/characters/:id', characterAccess, (req, res) => {
   const { name, age, appearance, personality, relationships, backstory, status } = req.body;
   db.prepare('UPDATE characters SET name=?, age=?, appearance=?, personality=?, relationships=?, backstory=?, status=? WHERE id=?').run(name, age, appearance, personality, relationships, backstory, status, req.params.id);
   res.json({ success: true });
 });
 
-app.delete('/api/characters/:id', (req, res) => {
+app.delete('/api/characters/:id', characterAccess, (req, res) => {
   db.prepare('DELETE FROM characters WHERE id = ?').run(req.params.id);
   res.json({ success: true });
 });
 
 // ====== PLOT POINTS ======
 
-app.post('/api/books/:id/plot', (req, res) => {
+app.post('/api/books/:id/plot', bookAccess, (req, res) => {
   const { chapter_number, event } = req.body;
   const result = db.prepare('INSERT INTO plot_points (book_id, chapter_number, event) VALUES (?,?,?)').run(req.params.id, chapter_number, event);
   res.json({ id: result.lastInsertRowid });
@@ -96,7 +158,7 @@ app.post('/api/books/:id/plot', (req, res) => {
 
 // ====== MULTI-AGENT WRITE ======
 
-app.post('/api/books/:id/write', async (req, res) => {
+app.post('/api/books/:id/write', bookAccess, async (req, res) => {
   const bookId = parseInt(req.params.id);
   const { chapterNumber, instructions } = req.body;
   const aiOpts = getAIOptions(req);
@@ -244,13 +306,13 @@ app.post('/api/books/:id/write', async (req, res) => {
 
 // ====== CHAPTERS ======
 
-app.put('/api/chapters/:id', (req, res) => {
+app.put('/api/chapters/:id', chapterAccess, (req, res) => {
   const { title, content, summary } = req.body;
   db.prepare('UPDATE chapters SET title=?, content=?, summary=? WHERE id=?').run(title, content, summary, req.params.id);
   res.json({ success: true });
 });
 
-app.delete('/api/chapters/:id', (req, res) => {
+app.delete('/api/chapters/:id', chapterAccess, (req, res) => {
   const chapterId = parseInt(req.params.id);
   const chapter = db.prepare('SELECT * FROM chapters WHERE id = ?').get(chapterId);
   if (!chapter) return res.status(404).json({ error: 'Không tìm thấy chương' });
@@ -262,62 +324,62 @@ app.delete('/api/chapters/:id', (req, res) => {
 
 // ====== AGENT LOGS ======
 
-app.get('/api/books/:id/logs', (req, res) => {
+app.get('/api/books/:id/logs', bookAccess, (req, res) => {
   const logs = db.prepare('SELECT * FROM agent_logs WHERE book_id = ? ORDER BY created_at DESC LIMIT 50').all(req.params.id);
   res.json(logs);
 });
 
 // ====== MEMORY ENGINE — EVENTS ======
 
-app.get('/api/books/:id/events', (req, res) => {
+app.get('/api/books/:id/events', bookAccess, (req, res) => {
   const events = db.prepare('SELECT * FROM story_events WHERE book_id = ? ORDER BY chapter_number DESC, id DESC').all(req.params.id);
   res.json(events);
 });
 
-app.post('/api/books/:id/events', (req, res) => {
+app.post('/api/books/:id/events', bookAccess, (req, res) => {
   const { chapter_number, event_type, description, character_involved, location, importance } = req.body;
   const result = db.prepare('INSERT INTO story_events (book_id, chapter_number, event_type, description, character_involved, location, importance) VALUES (?,?,?,?,?,?,?)').run(req.params.id, chapter_number, event_type, description, character_involved, location, importance || 'normal');
   res.json({ id: result.lastInsertRowid });
 });
 
-app.put('/api/events/:id', (req, res) => {
+app.put('/api/events/:id', eventAccess, (req, res) => {
   const { description, event_type, importance, character_involved, location } = req.body;
   db.prepare('UPDATE story_events SET description=?, event_type=?, importance=?, character_involved=?, location=? WHERE id=?').run(description, event_type, importance, character_involved, location, req.params.id);
   res.json({ success: true });
 });
 
-app.delete('/api/events/:id', (req, res) => {
+app.delete('/api/events/:id', eventAccess, (req, res) => {
   db.prepare('DELETE FROM story_events WHERE id = ?').run(req.params.id);
   res.json({ success: true });
 });
 
 // ====== MEMORY ENGINE — WORLD STATE ======
 
-app.get('/api/books/:id/world-state', (req, res) => {
+app.get('/api/books/:id/world-state', bookAccess, (req, res) => {
   const state = db.prepare('SELECT * FROM world_state WHERE book_id = ? ORDER BY entity_type, entity_name').all(req.params.id);
   res.json(state);
 });
 
-app.post('/api/books/:id/world-state', (req, res) => {
+app.post('/api/books/:id/world-state', bookAccess, (req, res) => {
   const { entity_type, entity_name, state_key, state_value } = req.body;
   const result = db.prepare('INSERT INTO world_state (book_id, entity_type, entity_name, state_key, state_value, updated_chapter) VALUES (?,?,?,?,?,?)').run(req.params.id, entity_type, entity_name, state_key, state_value, 0);
   res.json({ id: result.lastInsertRowid });
 });
 
-app.put('/api/world-state/:id', (req, res) => {
+app.put('/api/world-state/:id', worldStateAccess, (req, res) => {
   const { state_value, entity_type, entity_name, state_key } = req.body;
   db.prepare('UPDATE world_state SET state_value=?, entity_type=?, entity_name=?, state_key=? WHERE id=?').run(state_value, entity_type, entity_name, state_key, req.params.id);
   res.json({ success: true });
 });
 
-app.delete('/api/world-state/:id', (req, res) => {
+app.delete('/api/world-state/:id', worldStateAccess, (req, res) => {
   db.prepare('DELETE FROM world_state WHERE id = ?').run(req.params.id);
   res.json({ success: true });
 });
 
 // ====== MEMORY ENGINE — CHARACTER TIMELINE ======
 
-app.get('/api/books/:id/character-timeline', (req, res) => {
+app.get('/api/books/:id/character-timeline', bookAccess, (req, res) => {
   const characters = db.prepare('SELECT * FROM characters WHERE book_id = ?').all(req.params.id);
   const events = db.prepare('SELECT * FROM story_events WHERE book_id = ? ORDER BY chapter_number').all(req.params.id);
   const timeline = {};
@@ -363,7 +425,7 @@ app.post('/api/anti-ai/fix', async (req, res) => {
   }
 });
 
-app.get('/api/chapters/:id/anti-ai', async (req, res) => {
+app.get('/api/chapters/:id/anti-ai', chapterAccess, async (req, res) => {
   const chapter = db.prepare('SELECT * FROM chapters WHERE id = ?').get(req.params.id);
   if (!chapter) return res.status(404).json({ error: 'Không tìm thấy chương' });
   try {
@@ -375,7 +437,7 @@ app.get('/api/chapters/:id/anti-ai', async (req, res) => {
   }
 });
 
-app.post('/api/chapters/:id/fix-ai', async (req, res) => {
+app.post('/api/chapters/:id/fix-ai', chapterAccess, async (req, res) => {
   const chapter = db.prepare('SELECT * FROM chapters WHERE id = ?').get(req.params.id);
   if (!chapter) return res.status(404).json({ error: 'Không tìm thấy chương' });
   try {
@@ -392,7 +454,7 @@ app.post('/api/chapters/:id/fix-ai', async (req, res) => {
 
 // ====== EXPORT ======
 
-app.get('/api/books/:id/export/formats', (req, res) => {
+app.get('/api/books/:id/export/formats', bookAccess, (req, res) => {
   res.json([
     { format: 'txt', label: 'TXT', icon: '📄', ext: '.txt' },
     { format: 'epub', label: 'EPUB', icon: '📗', ext: '.epub' },
@@ -401,7 +463,7 @@ app.get('/api/books/:id/export/formats', (req, res) => {
   ]);
 });
 
-app.get('/api/books/:id/export/txt', (req, res) => {
+app.get('/api/books/:id/export/txt', bookAccess, (req, res) => {
   const book = db.prepare('SELECT * FROM books WHERE id = ?').get(req.params.id);
   const chapters = db.prepare('SELECT * FROM chapters WHERE book_id = ? ORDER BY chapter_number').all(req.params.id);
   if (!book) return res.status(404).json({ error: 'Không tìm thấy' });
@@ -413,7 +475,7 @@ app.get('/api/books/:id/export/txt', (req, res) => {
   res.send(text);
 });
 
-app.get('/api/books/:id/export/epub', async (req, res) => {
+app.get('/api/books/:id/export/epub', bookAccess, async (req, res) => {
   const book = db.prepare('SELECT * FROM books WHERE id = ?').get(req.params.id);
   const chapters = db.prepare('SELECT * FROM chapters WHERE book_id = ? ORDER BY chapter_number').all(req.params.id);
   if (!book) return res.status(404).json({ error: 'Không tìm thấy' });
@@ -433,7 +495,7 @@ app.get('/api/books/:id/export/epub', async (req, res) => {
   }
 });
 
-app.get('/api/books/:id/export/pdf', async (req, res) => {
+app.get('/api/books/:id/export/pdf', bookAccess, async (req, res) => {
   const book = db.prepare('SELECT * FROM books WHERE id = ?').get(req.params.id);
   const chapters = db.prepare('SELECT * FROM chapters WHERE book_id = ? ORDER BY chapter_number').all(req.params.id);
   if (!book) return res.status(404).json({ error: 'Không tìm thấy' });
@@ -453,7 +515,7 @@ app.get('/api/books/:id/export/pdf', async (req, res) => {
   }
 });
 
-app.get('/api/books/:id/export/markdown', (req, res) => {
+app.get('/api/books/:id/export/markdown', bookAccess, (req, res) => {
   const book = db.prepare('SELECT * FROM books WHERE id = ?').get(req.params.id);
   const chapters = db.prepare('SELECT * FROM chapters WHERE book_id = ? ORDER BY chapter_number').all(req.params.id);
   if (!book) return res.status(404).json({ error: 'Không tìm thấy' });
@@ -467,7 +529,7 @@ app.get('/api/books/:id/export/markdown', (req, res) => {
 
 // ====== REVISION STUDIO ======
 
-app.get('/api/books/:id/chapters', (req, res) => {
+app.get('/api/books/:id/chapters', bookAccess, (req, res) => {
   const chapters = db.prepare('SELECT * FROM chapters WHERE book_id = ? ORDER BY chapter_number').all(req.params.id);
   const enriched = chapters.map(ch => ({
     ...ch,
@@ -479,7 +541,7 @@ app.get('/api/books/:id/chapters', (req, res) => {
   res.json(enriched);
 });
 
-app.post('/api/chapters/:id/revise', async (req, res) => {
+app.post('/api/chapters/:id/revise', chapterAccess, async (req, res) => {
   const chapter = db.prepare('SELECT * FROM chapters WHERE id = ?').get(req.params.id);
   if (!chapter) return res.status(404).json({ error: 'Không tìm thấy chương' });
   const book = db.prepare('SELECT * FROM books WHERE id = ?').get(chapter.book_id);
@@ -508,7 +570,7 @@ app.post('/api/chapters/:id/revise', async (req, res) => {
 
 // ====== STORYBIBLE ======
 
-app.get('/api/books/:id/storybible', (req, res) => {
+app.get('/api/books/:id/storybible', bookAccess, (req, res) => {
   const book = db.prepare('SELECT * FROM books WHERE id = ?').get(req.params.id);
   if (!book) return res.status(404).json({ error: 'Không tìm thấy' });
   const characters = db.prepare('SELECT * FROM characters WHERE book_id = ?').all(req.params.id);
@@ -520,7 +582,7 @@ app.get('/api/books/:id/storybible', (req, res) => {
   res.json(data);
 });
 
-app.post('/api/books/:id/storybible/generate', async (req, res) => {
+app.post('/api/books/:id/storybible/generate', bookAccess, async (req, res) => {
   const book = db.prepare('SELECT * FROM books WHERE id = ?').get(req.params.id);
   if (!book) return res.status(404).json({ error: 'Không tìm thấy' });
   const characters = db.prepare('SELECT * FROM characters WHERE book_id = ?').all(req.params.id);
@@ -540,7 +602,7 @@ app.post('/api/books/:id/storybible/generate', async (req, res) => {
 
 // ====== AI CHAT ======
 
-app.post('/api/books/:id/chat', async (req, res) => {
+app.post('/api/books/:id/chat', bookAccess, async (req, res) => {
   const { characterName, message, chatHistory } = req.body;
   if (!characterName || !message) return res.status(400).json({ error: 'Thiếu thông tin' });
   const book = db.prepare('SELECT * FROM books WHERE id = ?').get(req.params.id);

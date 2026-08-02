@@ -6,7 +6,7 @@ import {
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './AntiAI.css';
-import API_URL from '../config';
+import API_URL, { apiFetch } from '../config';
 
 function AntiAI() {
   const { id } = useParams();
@@ -21,7 +21,7 @@ function AntiAI() {
   const [showChapters, setShowChapters] = useState(false);
 
   const loadChapters = async () => {
-    const res = await fetch(`${API_URL}/api/books/${id}`);
+    const res = await apiFetch(`${API_URL}/api/books/${id}`);
     const data = await res.json();
     setChapters(data.chapters);
     setShowChapters(true);
@@ -40,7 +40,7 @@ function AntiAI() {
     if (!text.trim()) { toast.error('Nhập văn bản'); return; }
     setLoading('quick');
     try {
-      const res = await fetch(`${API_URL}/api/anti-ai/quick`, {
+      const res = await apiFetch(`${API_URL}/api/anti-ai/quick`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text }),
@@ -58,7 +58,7 @@ function AntiAI() {
     if (!text.trim()) { toast.error('Nhập văn bản'); return; }
     setLoading('deep');
     try {
-      const res = await fetch(`${API_URL}/api/anti-ai/analyze`, {
+      const res = await apiFetch(`${API_URL}/api/anti-ai/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text }),
@@ -76,7 +76,7 @@ function AntiAI() {
     if (!text.trim()) { toast.error('Nhập văn bản'); return; }
     setLoading('fix');
     try {
-      const res = await fetch(`${API_URL}/api/anti-ai/fix`, {
+      const res = await apiFetch(`${API_URL}/api/anti-ai/fix`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -96,7 +96,7 @@ function AntiAI() {
   const handleSaveToChapter = async () => {
     if (!selectedChapter || !fixedText) return;
     try {
-      await fetch(`${API_URL}/api/chapters/${selectedChapter.id}`, {
+      await apiFetch(`${API_URL}/api/chapters/${selectedChapter.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

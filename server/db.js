@@ -4,6 +4,13 @@ const path = require('path');
 const db = new Database(path.join(__dirname, 'novels.db'));
 
 db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
   CREATE TABLE IF NOT EXISTS books (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
@@ -11,6 +18,7 @@ db.exec(`
     setting TEXT,
     synopsis TEXT,
     world_rules TEXT,
+    owner_id INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -91,5 +99,14 @@ db.exec(`
     FOREIGN KEY (book_id) REFERENCES books(id)
   );
 `);
+
+// Di trú cho database cũ (đã tồn tại trước khi có đăng nhập): thêm cột owner_id
+// nếu chưa có. Nếu đã có (cài mới) thì lệnh này sẽ báo lỗi "duplicate column" và
+// bị bỏ qua an toàn.
+try {
+  db.exec('ALTER TABLE books ADD COLUMN owner_id INTEGER');
+} catch (err) {
+  if (!/duplicate column/i.test(err.message)) throw err;
+}
 
 module.exports = db;

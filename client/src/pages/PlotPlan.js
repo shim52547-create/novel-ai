@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { FiPlus, FiArrowLeft, FiCheck, FiCircle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './PlotPlan.css';
-import API_URL from '../config';
+import API_URL, { apiFetch } from '../config';
 
 function PlotPlan() {
   const { id } = useParams();
@@ -13,7 +13,7 @@ function PlotPlan() {
   const [form, setForm] = useState({ chapter_number: '', event: '' });
 
   const load = async () => {
-    const res = await fetch(`${API_URL}/api/books/${id}`);
+    const res = await apiFetch(`${API_URL}/api/books/${id}`);
     setData(await res.json());
   };
 
@@ -21,7 +21,7 @@ function PlotPlan() {
 
   const addPlot = async () => {
     if (!form.event.trim()) { toast.error('Nhập nội dung'); return; }
-    await fetch(`${API_URL}/api/books/${id}/plot`, {
+    await apiFetch(`${API_URL}/api/books/${id}/plot`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chapter_number: parseInt(form.chapter_number) || 0, event: form.event }),

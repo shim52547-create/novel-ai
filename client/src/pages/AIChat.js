@@ -5,7 +5,7 @@ import {
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './AIChat.css';
-import API_URL from '../config';
+import API_URL, { apiFetch } from '../config';
 
 function AIChat() {
   const { id } = useParams();
@@ -19,7 +19,7 @@ function AIChat() {
   const chatEndRef = useRef(null);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/books/${id}`)
+    apiFetch(`${API_URL}/api/books/${id}`)
       .then(r => r.json())
       .then(data => {
         setBook(data.book);
@@ -59,7 +59,7 @@ function AIChat() {
         .filter(m => m.role)
         .map(m => ({ role: m.role, content: m.content }));
 
-      const res = await fetch(`${API_URL}/api/books/${id}/chat`, {
+      const res = await apiFetch(`${API_URL}/api/books/${id}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

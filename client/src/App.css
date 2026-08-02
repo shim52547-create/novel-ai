@@ -454,3 +454,36 @@
 }
 
 .flicker { animation: textFlicker 4s infinite; }
+/* ====== TOPBAR: TÀI KHOẢN / ĐĂNG XUẤT ====== */
+.topbar-account {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.topbar-username {
+  font-size: 12px;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+}
+
+.topbar-logout {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.topbar-logout:hover {
+  color: var(--magenta);
+  border-color: var(--magenta);
+}
