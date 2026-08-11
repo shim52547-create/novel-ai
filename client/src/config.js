@@ -44,6 +44,22 @@ export function getModel() {
   return localStorage.getItem('novel_ai_model') || '';
 }
 
+// ====== THEME (sáng / tối) ======
+const THEME_KEY = 'novel_ai_theme';
+
+export function getTheme() {
+  return localStorage.getItem(THEME_KEY) || 'dark';
+}
+
+export function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme === 'light' ? 'light' : 'dark');
+}
+
+export function setTheme(theme) {
+  localStorage.setItem(THEME_KEY, theme);
+  applyTheme(theme);
+}
+
 export function getHeaders(extra = {}) {
   const headers = { 'Content-Type': 'application/json', ...extra };
   const key = getApiKey();
