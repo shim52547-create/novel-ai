@@ -19,8 +19,10 @@ import AIChat from './pages/AIChat';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
 import './App.css';
-import API_URL, { apiFetch, isLoggedIn, getUsername, clearSession } from './config';
+import API_URL, { apiFetch, isLoggedIn, getUsername, clearSession, getTheme, applyTheme } from './config';
 import { FiLogOut } from 'react-icons/fi';
+
+applyTheme(getTheme());
 
 function ProtectedRoute({ children }) {
   return isLoggedIn() ? children : <Navigate to="/login" replace />;
