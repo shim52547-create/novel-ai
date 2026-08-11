@@ -35,6 +35,15 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '5mb' }));
 
+// Không cho phép bất kỳ lớp cache nào (CDN, reverse proxy, trình duyệt) lưu
+// response của API — tránh việc user này vô tình nhận dữ liệu đã cache của
+// user khác khi deploy sau proxy/CDN không nhận biết Authorization header.
+app.use('/api', (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Vary', 'Authorization');
+  next();
+});
+
 // ====== AI OPTIONS HELPER ======
 function getAIOptions(req) {
   return {
