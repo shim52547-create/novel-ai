@@ -509,6 +509,26 @@
   opacity: 0.5;
 }
 
+.book-card-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  opacity: 0.4;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+}
+
+.book-card-delete:hover {
+  opacity: 1;
+  color: #ff3860;
+  background: rgba(255, 56, 96, 0.1);
+}
+
 .book-card-title {
   font-family: var(--font-display);
   font-size: 1.15rem;
