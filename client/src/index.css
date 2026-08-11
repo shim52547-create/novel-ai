@@ -45,6 +45,30 @@
   --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ====== LIGHT THEME (tùy chọn trong Cài đặt) ====== */
+[data-theme="light"] {
+  --bg-void: #f4f5fb;
+  --bg-deep: #eceefa;
+  --bg: #ffffff;
+  --bg-elevated: #f7f8fd;
+  --surface: #ffffff;
+  --surface-hover: #eef0fb;
+  --border: #d8dcf0;
+  --border-glow: #c2c8ec;
+
+  --text-primary: #16162e;
+  --text-secondary: #46466e;
+  --text-muted: #8484a8;
+
+  --neon-cyan: 0 0 4px rgba(0,150,170,0.25);
+  --neon-magenta: 0 0 4px rgba(190,0,120,0.2);
+  --neon-green: 0 0 4px rgba(0,150,90,0.2);
+}
+
+[data-theme="light"] body::after {
+  display: none;
+}
+
 *, *::before, *::after {
   margin: 0;
   padding: 0;
