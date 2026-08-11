@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiUsers, FiFeather, FiMap, FiArrowRight, FiClock, FiCpu, FiDownload, FiEdit3, FiBook, FiMessageSquare } from 'react-icons/fi';
+import { FiUsers, FiFeather, FiMap, FiArrowRight, FiClock, FiCpu, FiDownload, FiEdit3, FiBook, FiMessageSquare, FiSettings, FiCheck, FiX } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 import './BookDetail.css';
 import API_URL, { apiFetch } from '../config';
 
@@ -8,13 +9,45 @@ function BookDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
+  const [showEdit, setShowEdit] = useState(false);
+  const [editForm, setEditForm] = useState({ title: '', genre: '', setting: '', synopsis: '' });
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
+  const load = () => {
     apiFetch(`${API_URL}/api/books/${id}`)
       .then(r => r.json())
       .then(setData)
       .catch(console.error);
-  }, [id]);
+  };
+
+  useEffect(() => { load(); }, [id]);
+
+  const openEdit = () => {
+    setEditForm({
+      title: data.book.title || '',
+      genre: data.book.genre || '',
+      setting: data.book.setting || '',
+      synopsis: data.book.synopsis || '',
+    });
+    setShowEdit(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editForm.title.trim()) { toast.error('Nhập tên truyện'); return; }
+    setSaving(true);
+    try {
+      const res = await apiFetch(`${API_URL}/api/books/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+      if (!res.ok) throw new Error();
+      toast.success('Đã lưu thông tin truyện');
+      setShowEdit(false);
+      load();
+    } catch (err) { toast.error('Lỗi khi lưu'); }
+    setSaving(false);
+  };
 
   if (!data) return <div className="loading-page"><span className="loading-spinner" /> LOADING...</div>;
 
@@ -26,7 +59,10 @@ function BookDetail() {
   return (
     <div className="page">
       <div className="page-header">
-        <h1>{book.title}</h1>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+          <h1>{book.title}</h1>
+          <button className="btn btn-ghost" onClick={openEdit}><FiSettings /> SỬA THÔNG TIN</button>
+        </div>
         <div className="page-header-meta">
           <span className="tag">{book.genre || 'UNCLASSIFIED'}</span>
           <span className="dot-sep">·</span>
@@ -34,6 +70,45 @@ function BookDetail() {
         </div>
         {book.synopsis && <p className="synopsis">{book.synopsis}</p>}
       </div>
+
+      {showEdit && (
+        <div className="modal-overlay" onClick={() => setShowEdit(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h2><FiSettings style={{ marginRight: '8px' }} />SỬA THÔNG TIN TRUYỆN</h2>
+
+            <div className="form-group">
+              <label className="form-label">Tên truyện *</label>
+              <input className="form-input" value={editForm.title}
+                onChange={e => setEditForm({ ...editForm, title: e.target.value })} autoFocus />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Thể loại</label>
+              <input className="form-input" value={editForm.genre}
+                onChange={e => setEditForm({ ...editForm, genre: e.target.value })} />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Bối cảnh</label>
+              <textarea className="form-textarea" rows={3} value={editForm.setting}
+                onChange={e => setEditForm({ ...editForm, setting: e.target.value })} />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Tóm tắt cốt truyện</label>
+              <textarea className="form-textarea" rows={4} value={editForm.synopsis}
+                onChange={e => setEditForm({ ...editForm, synopsis: e.target.value })} />
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px' }}>
+              <button className="btn btn-ghost" onClick={() => setShowEdit(false)}><FiX /> HỦY</button>
+              <button className="btn btn-cyber" onClick={handleSaveEdit} disabled={saving}>
+                {saving ? <span className="loading-spinner" /> : <FiCheck />} LƯU
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="stats-grid">
         <div className="stat-card"><span className="stat-num">{chapters.length}</span><span className="stat-label">CHƯƠNG</span></div>
