@@ -120,6 +120,7 @@ const characterAccess = subAccess('characters');
 const chapterAccess = subAccess('chapters');
 const eventAccess = subAccess('story_events');
 const worldStateAccess = subAccess('world_state');
+const plotAccess = subAccess('plot_points');
 
 // ====== BOOKS ======
 
@@ -143,6 +144,13 @@ app.get('/api/books/:id', bookAccess, (req, res) => {
   const worldState = db.prepare('SELECT * FROM world_state WHERE book_id = ?').all(req.params.id);
   const agentLogs = db.prepare('SELECT * FROM agent_logs WHERE book_id = ? ORDER BY created_at DESC LIMIT 20').all(req.params.id);
   res.json({ book, characters, chapters, plotPoints, storyEvents, worldState, agentLogs });
+});
+
+app.put('/api/books/:id', bookAccess, (req, res) => {
+  const { title, genre, setting, synopsis } = req.body;
+  if (!title || !String(title).trim()) return res.status(400).json({ error: 'Thiếu tên truyện' });
+  db.prepare('UPDATE books SET title=?, genre=?, setting=?, synopsis=? WHERE id=?').run(title, genre, setting, synopsis, req.params.id);
+  res.json({ success: true });
 });
 
 app.delete('/api/books/:id', bookAccess, (req, res) => {
@@ -182,6 +190,17 @@ app.post('/api/books/:id/plot', bookAccess, (req, res) => {
   const { chapter_number, event } = req.body;
   const result = db.prepare('INSERT INTO plot_points (book_id, chapter_number, event) VALUES (?,?,?)').run(req.params.id, chapter_number, event);
   res.json({ id: result.lastInsertRowid });
+});
+
+app.put('/api/plot/:id', plotAccess, (req, res) => {
+  const { chapter_number, event, status } = req.body;
+  db.prepare('UPDATE plot_points SET chapter_number=?, event=?, status=? WHERE id=?').run(chapter_number, event, status, req.params.id);
+  res.json({ success: true });
+});
+
+app.delete('/api/plot/:id', plotAccess, (req, res) => {
+  db.prepare('DELETE FROM plot_points WHERE id = ?').run(req.params.id);
+  res.json({ success: true });
 });
 
 // ====== MULTI-AGENT WRITE ======
@@ -656,6 +675,64 @@ app.get('/api/providers', (req, res) => {
 
 app.get('/api/config/check', (req, res) => {
   res.json(getDefaultConfig());
+});
+
+// ====== TÀI KHOẢN ======
+
+app.get('/api/account', (req, res) => {
+  const user = db.prepare('SELECT id, username, created_at FROM users WHERE id = ?').get(req.userId);
+  if (!user) return res.status(404).json({ error: 'Không tìm thấy' });
+  const bookCount = db.prepare('SELECT COUNT(*) AS c FROM books WHERE owner_id = ?').get(req.userId).c;
+  res.json({ ...user, bookCount });
+});
+
+app.put('/api/account/password', (req, res) => {
+  const { currentPassword, newPassword } = req.body || {};
+  if (!currentPassword || !newPassword) return res.status(400).json({ error: 'Thiếu mật khẩu cũ hoặc mới' });
+  if (String(newPassword).length < 6) return res.status(400).json({ error: 'Mật khẩu mới cần tối thiểu 6 ký tự' });
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId);
+  if (!user || !verifyPassword(currentPassword, user.password_hash)) {
+    return res.status(401).json({ error: 'Mật khẩu hiện tại không đúng' });
+  }
+  const password_hash = hashPassword(newPassword);
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(password_hash, req.userId);
+  res.json({ success: true });
+});
+
+app.get('/api/account/export', (req, res) => {
+  const books = db.prepare('SELECT * FROM books WHERE owner_id = ?').all(req.userId);
+  const data = books.map(book => ({
+    book,
+    characters: db.prepare('SELECT * FROM characters WHERE book_id = ?').all(book.id),
+    chapters: db.prepare('SELECT * FROM chapters WHERE book_id = ? ORDER BY chapter_number').all(book.id),
+    plotPoints: db.prepare('SELECT * FROM plot_points WHERE book_id = ? ORDER BY chapter_number').all(book.id),
+    storyEvents: db.prepare('SELECT * FROM story_events WHERE book_id = ? ORDER BY chapter_number').all(book.id),
+    worldState: db.prepare('SELECT * FROM world_state WHERE book_id = ?').all(book.id),
+  }));
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="novel-ai-backup-${req.username}.json"`);
+  res.send(JSON.stringify({ exportedAt: new Date().toISOString(), username: req.username, books: data }, null, 2));
+});
+
+app.delete('/api/account', (req, res) => {
+  const { password } = req.body || {};
+  if (!password) return res.status(400).json({ error: 'Cần nhập mật khẩu để xác nhận' });
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId);
+  if (!user || !verifyPassword(password, user.password_hash)) {
+    return res.status(401).json({ error: 'Mật khẩu không đúng' });
+  }
+  const books = db.prepare('SELECT id FROM books WHERE owner_id = ?').all(req.userId);
+  for (const b of books) {
+    db.prepare('DELETE FROM chapters WHERE book_id = ?').run(b.id);
+    db.prepare('DELETE FROM characters WHERE book_id = ?').run(b.id);
+    db.prepare('DELETE FROM plot_points WHERE book_id = ?').run(b.id);
+    db.prepare('DELETE FROM story_events WHERE book_id = ?').run(b.id);
+    db.prepare('DELETE FROM world_state WHERE book_id = ?').run(b.id);
+    db.prepare('DELETE FROM agent_logs WHERE book_id = ?').run(b.id);
+  }
+  db.prepare('DELETE FROM books WHERE owner_id = ?').run(req.userId);
+  db.prepare('DELETE FROM users WHERE id = ?').run(req.userId);
+  res.json({ success: true });
 });
 
 // ====== SERVE REACT CLIENT (BUILD) ======
