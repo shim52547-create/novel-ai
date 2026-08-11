@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiPlus, FiArrowLeft, FiCheck, FiCircle } from 'react-icons/fi';
+import { FiPlus, FiArrowLeft, FiCheck, FiCircle, FiEdit3, FiTrash2, FiX } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './PlotPlan.css';
 import API_URL, { apiFetch } from '../config';
@@ -11,6 +11,9 @@ function PlotPlan() {
   const [data, setData] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ chapter_number: '', event: '' });
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({ chapter_number: '', event: '', status: 'planned' });
+  const [saving, setSaving] = useState(false);
 
   const load = async () => {
     const res = await apiFetch(`${API_URL}/api/books/${id}`);
@@ -30,6 +33,38 @@ function PlotPlan() {
     setForm({ chapter_number: '', event: '' });
     setShowForm(false);
     load();
+  };
+
+  const openEdit = (p) => {
+    setEditingId(p.id);
+    setEditForm({ chapter_number: p.chapter_number, event: p.event, status: p.status || 'planned' });
+  };
+
+  const saveEdit = async () => {
+    if (!editForm.event.trim()) { toast.error('Nhập nội dung'); return; }
+    setSaving(true);
+    try {
+      const res = await apiFetch(`${API_URL}/api/plot/${editingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...editForm, chapter_number: parseInt(editForm.chapter_number) || 0 }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success('Đã lưu');
+      setEditingId(null);
+      load();
+    } catch (err) { toast.error('Lỗi khi lưu'); }
+    setSaving(false);
+  };
+
+  const deletePlot = async (p) => {
+    if (!window.confirm(`Xóa mốc "CH.${p.chapter_number}"? Không khôi phục được.`)) return;
+    try {
+      const res = await apiFetch(`${API_URL}/api/plot/${p.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      toast.success('Đã xóa');
+      load();
+    } catch (err) { toast.error('Lỗi khi xóa'); }
   };
 
   if (!data) return <div className="loading-page"><span className="loading-spinner" /></div>;
@@ -70,6 +105,10 @@ function PlotPlan() {
                   <div className="plot-header">
                     <span className="plot-ch">CH.{p.chapter_number}</span>
                     <span className={`tag ${written ? 'tag-green' : ''}`}>{written ? 'ĐÃ VIẾT' : 'CHỜ VIẾT'}</span>
+                    <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
+                      <button className="btn btn-ghost" style={{ padding: '4px 8px' }} title="Sửa" onClick={() => openEdit(p)}><FiEdit3 /></button>
+                      <button className="btn btn-ghost" style={{ padding: '4px 8px' }} title="Xóa" onClick={() => deletePlot(p)}><FiTrash2 /></button>
+                    </div>
                   </div>
                   <p className="plot-text">{p.event}</p>
                 </div>
@@ -94,6 +133,35 @@ function PlotPlan() {
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               <button className="btn btn-ghost" onClick={() => setShowForm(false)}>HỦY</button>
               <button className="btn btn-cyber" onClick={addPlot}><FiPlus /> THÊM</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingId && (
+        <div className="modal-overlay" onClick={() => setEditingId(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h2>SỬA KẾ HOẠCH</h2>
+            <div className="form-group">
+              <label className="form-label">Số chương</label>
+              <input className="form-input" type="number" value={editForm.chapter_number} onChange={e => setEditForm({ ...editForm, chapter_number: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Nội dung chương</label>
+              <textarea className="form-textarea" value={editForm.event} onChange={e => setEditForm({ ...editForm, event: e.target.value })} rows={4} autoFocus />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Trạng thái</label>
+              <select className="form-input" value={editForm.status} onChange={e => setEditForm({ ...editForm, status: e.target.value })}>
+                <option value="planned">Chờ viết</option>
+                <option value="done">Đã xong</option>
+              </select>
+            </div>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button className="btn btn-ghost" onClick={() => setEditingId(null)}><FiX /> HỦY</button>
+              <button className="btn btn-cyber" onClick={saveEdit} disabled={saving}>
+                {saving ? <span className="loading-spinner" /> : <FiCheck />} LƯU
+              </button>
             </div>
           </div>
         </div>
