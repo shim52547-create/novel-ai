@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FiArrowLeft, FiKey, FiCpu, FiCheck, FiX,
-  FiEye, FiEyeOff, FiZap, FiShield
+  FiEye, FiEyeOff, FiZap, FiShield, FiSun, FiMoon,
+  FiUser, FiLock, FiDownload, FiTrash2, FiAlertTriangle,
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './Settings.css';
-import API_URL, { apiFetch } from '../config';
+import API_URL, { apiFetch, getTheme, setTheme, clearSession } from '../config';
 
 function Settings() {
   const navigate = useNavigate();
@@ -17,6 +18,20 @@ function Settings() {
   const [showKey, setShowKey] = useState(false);
   const [config, setConfig] = useState(null);
   const [testing, setTesting] = useState(false);
+
+  // Giao diện
+  const [theme, setThemeState] = useState(getTheme());
+
+  // Tài khoản
+  const [account, setAccount] = useState(null);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [savingPw, setSavingPw] = useState(false);
+
+  // Xóa tài khoản
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     setApiKey(localStorage.getItem('novel_ai_api_key') || '');
@@ -31,6 +46,11 @@ function Settings() {
     apiFetch(`${API_URL}/api/config/check`)
       .then(r => r.json())
       .then(setConfig)
+      .catch(() => {});
+
+    apiFetch(`${API_URL}/api/account`)
+      .then(r => r.json())
+      .then(setAccount)
       .catch(() => {});
   }, []);
 
@@ -97,6 +117,65 @@ function Settings() {
     return map[tier] || { label: tier, color: 'var(--text-muted)' };
   };
 
+  const handleThemeChange = (value) => {
+    setThemeState(value);
+    setTheme(value);
+  };
+
+  const handleChangePassword = async () => {
+    if (!pwForm.currentPassword || !pwForm.newPassword) { toast.error('Nhập đầy đủ thông tin'); return; }
+    if (pwForm.newPassword.length < 6) { toast.error('Mật khẩu mới cần tối thiểu 6 ký tự'); return; }
+    if (pwForm.newPassword !== pwForm.confirmPassword) { toast.error('Mật khẩu xác nhận không khớp'); return; }
+    setSavingPw(true);
+    try {
+      const res = await apiFetch(`${API_URL}/api/account/password`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: pwForm.currentPassword, newPassword: pwForm.newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'Lỗi'); setSavingPw(false); return; }
+      toast.success('Đã đổi mật khẩu');
+      setShowPasswordForm(false);
+      setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err) { toast.error('Lỗi khi đổi mật khẩu'); }
+    setSavingPw(false);
+  };
+
+  const handleExportAll = async () => {
+    try {
+      const res = await apiFetch(`${API_URL}/api/account/export`);
+      if (!res.ok) throw new Error();
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `novel-ai-backup-${account?.username || 'data'}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Đã tải xuống bản sao lưu');
+    } catch (err) { toast.error('Lỗi khi tải bản sao lưu'); }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) { toast.error('Nhập mật khẩu để xác nhận'); return; }
+    setDeleting(true);
+    try {
+      const res = await apiFetch(`${API_URL}/api/account`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: deletePassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'Lỗi'); setDeleting(false); return; }
+      toast.success('Đã xóa tài khoản');
+      clearSession();
+      window.location.href = '/login';
+    } catch (err) { toast.error('Lỗi khi xóa tài khoản'); setDeleting(false); }
+  };
+
   return (
     <div className="page">
       <button className="btn btn-ghost" onClick={() => navigate('/')} style={{ marginBottom: '16px' }}>
@@ -105,7 +184,64 @@ function Settings() {
 
       <div className="page-header">
         <h1>CÀI ĐẶT</h1>
-        <p className="subtitle">Chọn AI Provider, nhập API Key, chọn Model</p>
+        <p className="subtitle">Tài khoản, giao diện và AI Provider</p>
+      </div>
+
+      {/* ====== TÀI KHOẢN ====== */}
+      <div className="settings-card">
+        <div className="settings-card-header"><FiUser /><span>TÀI KHOẢN</span></div>
+        <div className="settings-card-body">
+          {account && (
+            <p className="settings-note" style={{ marginBottom: '12px' }}>
+              Đăng nhập với <strong>{account.username}</strong> · {account.bookCount} truyện · tạo lúc {new Date(account.created_at).toLocaleDateString('vi-VN')}
+            </p>
+          )}
+          {!showPasswordForm ? (
+            <button className="btn btn-ghost" onClick={() => setShowPasswordForm(true)}>
+              <FiLock /> ĐỔI MẬT KHẨU
+            </button>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '360px' }}>
+              <input type="password" className="form-input" placeholder="Mật khẩu hiện tại"
+                value={pwForm.currentPassword} onChange={e => setPwForm({ ...pwForm, currentPassword: e.target.value })} />
+              <input type="password" className="form-input" placeholder="Mật khẩu mới (tối thiểu 6 ký tự)"
+                value={pwForm.newPassword} onChange={e => setPwForm({ ...pwForm, newPassword: e.target.value })} />
+              <input type="password" className="form-input" placeholder="Xác nhận mật khẩu mới"
+                value={pwForm.confirmPassword} onChange={e => setPwForm({ ...pwForm, confirmPassword: e.target.value })} />
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button className="btn btn-ghost" onClick={() => { setShowPasswordForm(false); setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' }); }}>
+                  <FiX /> HỦY
+                </button>
+                <button className="btn btn-cyber" onClick={handleChangePassword} disabled={savingPw}>
+                  {savingPw ? <span className="loading-spinner" /> : <FiCheck />} LƯU MẬT KHẨU
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ====== GIAO DIỆN ====== */}
+      <div className="settings-card">
+        <div className="settings-card-header"><FiSun /><span>GIAO DIỆN</span></div>
+        <div className="settings-card-body">
+          <div className="settings-providers-grid">
+            <div className={`settings-provider-card ${theme === 'dark' ? 'selected' : ''}`} onClick={() => handleThemeChange('dark')}>
+              <div className="settings-provider-radio">{theme === 'dark' && <div className="settings-model-dot" />}</div>
+              <div className="settings-provider-info">
+                <span className="settings-provider-name"><FiMoon style={{ marginRight: '6px' }} />Tối (Cyberpunk)</span>
+                <span className="settings-provider-models">Mặc định</span>
+              </div>
+            </div>
+            <div className={`settings-provider-card ${theme === 'light' ? 'selected' : ''}`} onClick={() => handleThemeChange('light')}>
+              <div className="settings-provider-radio">{theme === 'light' && <div className="settings-model-dot" />}</div>
+              <div className="settings-provider-info">
+                <span className="settings-provider-name"><FiSun style={{ marginRight: '6px' }} />Sáng</span>
+                <span className="settings-provider-models">Dễ đọc khi viết lâu</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {config && (
@@ -203,6 +339,44 @@ function Settings() {
       <div className="settings-actions">
         <button className="btn btn-cyber" onClick={handleSave}><FiCheck /> LƯU CÀI ĐẶT</button>
         <button className="btn btn-ghost" onClick={handleClear}><FiX /> XÓA & DÙNG MẶC ĐỊNH</button>
+      </div>
+
+      {/* ====== SAO LƯU / XÓA TÀI KHOẢN ====== */}
+      <div className="settings-card" style={{ marginTop: '32px' }}>
+        <div className="settings-card-header"><FiDownload /><span>SAO LƯU DỮ LIỆU</span></div>
+        <div className="settings-card-body">
+          <p className="settings-note" style={{ marginBottom: '12px' }}>
+            Tải xuống toàn bộ truyện, chương, nhân vật, kế hoạch của bạn dưới dạng 1 file JSON.
+          </p>
+          <button className="btn btn-ghost" onClick={handleExportAll}><FiDownload /> TẢI TOÀN BỘ DỮ LIỆU</button>
+        </div>
+      </div>
+
+      <div className="settings-card" style={{ borderColor: 'rgba(255,51,102,0.4)' }}>
+        <div className="settings-card-header" style={{ color: 'var(--red)' }}><FiAlertTriangle /><span>VÙNG NGUY HIỂM</span></div>
+        <div className="settings-card-body">
+          {!showDeleteAccount ? (
+            <button className="btn btn-ghost" style={{ color: 'var(--red)', borderColor: 'var(--red)' }} onClick={() => setShowDeleteAccount(true)}>
+              <FiTrash2 /> XÓA TÀI KHOẢN
+            </button>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '360px' }}>
+              <p className="settings-note">
+                Toàn bộ truyện, chương, nhân vật sẽ bị xóa vĩnh viễn, không khôi phục được. Nhập mật khẩu để xác nhận.
+              </p>
+              <input type="password" className="form-input" placeholder="Mật khẩu"
+                value={deletePassword} onChange={e => setDeletePassword(e.target.value)} />
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button className="btn btn-ghost" onClick={() => { setShowDeleteAccount(false); setDeletePassword(''); }}>
+                  <FiX /> HỦY
+                </button>
+                <button className="btn btn-cyber" style={{ background: 'var(--red)', borderColor: 'var(--red)' }} onClick={handleDeleteAccount} disabled={deleting}>
+                  {deleting ? <span className="loading-spinner" /> : <FiTrash2 />} XÓA VĨNH VIỄN
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
