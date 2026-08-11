@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiPlus, FiBookOpen, FiFeather, FiClock, FiZap, FiDatabase, FiCpu, FiTerminal } from 'react-icons/fi';
+import { FiPlus, FiBookOpen, FiFeather, FiClock, FiZap, FiDatabase, FiCpu, FiTerminal, FiTrash2 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './Home.css';
 import API_URL, { apiFetch } from '../config';
@@ -69,6 +69,17 @@ function Home({ books, refreshBooks }) {
       navigate(`/book/${data.id}`);
     } catch (err) { toast.error('Lỗi khởi tạo'); }
     setCreating(false);
+  };
+
+  const handleDelete = async (e, book) => {
+    e.stopPropagation();
+    if (!window.confirm(`Xóa truyện "${book.title}"? Toàn bộ chương, nhân vật, dữ liệu liên quan sẽ mất vĩnh viễn, không khôi phục được.`)) return;
+    try {
+      const res = await apiFetch(`${API_URL}/api/books/${book.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      toast.success('Đã xóa truyện');
+      await refreshBooks();
+    } catch (err) { toast.error('Lỗi khi xóa truyện'); }
   };
 
   const genreOptions = [
@@ -290,6 +301,9 @@ function Home({ books, refreshBooks }) {
               <div className="book-card-header">
                 <span className="tag">{book.genre || 'UNCLASSIFIED'}</span>
                 <span className="book-id">#{String(book.id).padStart(3, '0')}</span>
+                <button className="book-card-delete" title="Xóa truyện" onClick={(e) => handleDelete(e, book)}>
+                  <FiTrash2 />
+                </button>
               </div>
               <h3 className="book-card-title">{book.title}</h3>
               <p className="book-card-desc">{book.synopsis || 'Chưa có mô tả'}</p>
