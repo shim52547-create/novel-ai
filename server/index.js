@@ -145,6 +145,18 @@ app.get('/api/books/:id', bookAccess, (req, res) => {
   res.json({ book, characters, chapters, plotPoints, storyEvents, worldState, agentLogs });
 });
 
+app.delete('/api/books/:id', bookAccess, (req, res) => {
+  const bookId = req.params.id;
+  db.prepare('DELETE FROM chapters WHERE book_id = ?').run(bookId);
+  db.prepare('DELETE FROM characters WHERE book_id = ?').run(bookId);
+  db.prepare('DELETE FROM plot_points WHERE book_id = ?').run(bookId);
+  db.prepare('DELETE FROM story_events WHERE book_id = ?').run(bookId);
+  db.prepare('DELETE FROM world_state WHERE book_id = ?').run(bookId);
+  db.prepare('DELETE FROM agent_logs WHERE book_id = ?').run(bookId);
+  db.prepare('DELETE FROM books WHERE id = ?').run(bookId);
+  res.json({ success: true });
+});
+
 // ====== CHARACTERS ======
 
 app.post('/api/books/:id/characters', bookAccess, (req, res) => {
